@@ -3,6 +3,7 @@ import { uiActions } from "./ui-slice";
 const initialState = {
   items: [],
   totalCnt: 0,
+  changed: false,
 };
 
 const cartSlice = createSlice({
@@ -17,11 +18,13 @@ const cartSlice = createSlice({
       const idx = state.items.findIndex((e) => e.name === action.payload);
       state.items[idx].count++;
       state.totalCnt++;
+      state.changed = true;
     },
     decreaseItem(state, action) {
       const idx = state.items.findIndex((e) => e.name === action.payload);
       state.items[idx].count--;
       state.totalCnt--;
+      state.changed = true;
       if (state.items[idx].count === 0) {
         state.items.splice(idx, 1);
       }
@@ -42,19 +45,36 @@ const cartSlice = createSlice({
           price: action.payload.price,
         });
       }
+      state.changed = true;
       state.totalCnt++;
     },
   },
 });
 export const getCartData = () => {
   return async (dispatch) => {
-    const response = await fetch(
-      "https://react-http-89f64-default-rtdb.firebaseio.com/cart.json"
-    );
-    const data = await response.json();
-    dispatch(
-      cartActions.setCart({ items: data.items, totalCnt: data.totalCnt })
-    );
+    try {
+      const response = await fetch(
+        "https://react-http-89f64-default-rtdb.firebaseio.com/cart.json"
+      );
+      if (!response.ok) {
+        throw new Error("get cart data failed!");
+      }
+      const data = await response.json();
+      dispatch(
+        cartActions.setCart({
+          items: data.items || [],
+          totalCnt: data.totalCnt,
+        })
+      );
+    } catch (error) {
+      dispatch(
+        uiActions.showNotification({
+          status: "error",
+          title: "Error!",
+          message: "get cart data failed!",
+        })
+      );
+    }
   };
 };
 export const sendCartData = (cart) => {
@@ -71,7 +91,7 @@ export const sendCartData = (cart) => {
         "https://react-http-89f64-default-rtdb.firebaseio.com/cart.json",
         {
           method: "PUT",
-          body: JSON.stringify(cart),
+          body: JSON.stringify({ items: cart.items, totalCnt: cart.totalCnt }),
         }
       );
       if (!response.ok) {

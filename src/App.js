@@ -18,9 +18,9 @@ function App() {
     if (isInit) {
       isInit = false;
       return;
-    } else {
+    } 
+    if(cart.changed)
       dispatch(sendCartData(cart));
-    }
   }, [cart, dispatch]);
   return (
     <Fragment>
